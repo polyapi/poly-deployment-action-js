@@ -1,6 +1,10 @@
-# Poly Deployment Action
+# <img src="https://polyapi.io/wp-content/uploads/2024/05/poly-block-logo-mark.png" style="height: calc(1em - 6px);"/> PolyAPI Deployment Action
 
 This GitHub Action automates the deployment process for all PolyAPI deployables in your application.
+
+PolyAPI accelerates development and simplifies the operation of integrations, orchestrations, and microservices with TypeScript, Python, Java, and C#, built on Kubernetes-native technology and cutting-edge AI.
+
+Learn more: https://polyapi.io/
 
 ## Usage
 
@@ -38,6 +42,8 @@ jobs:
         uses: polyapi/poly-deployment-action-js@v1
 ```
 
+### Setting keys explicitly
+
 If you wish to set the api key or deploy url explicitly rather than letting the action pull them from secrets you may pass them along in your deploy step:
 
 ```yaml
@@ -47,4 +53,19 @@ If you wish to set the api key or deploy url explicitly rather than letting the 
         with:
           poly_api_key: ${{ secrets.CUSTOM_SECRET_KEY }}
           poly_api_base_url: https://my.poly.instance.com
+```
+
+### No development environment?
+
+Straight to prod? We can handle that.
+
+Continue to use `main` as your production branch and define `POLY_API_KEY_PROD` and `POLY_API_BASE_URL_PROD` as secrets in github.
+
+Modify your `your_repo/.github/workflows/deploy.yml` to only deploy on push to main:
+```yaml
+name: Deploy to PolyAPI
+on:
+  push:
+    branches:
+      - main
 ```
