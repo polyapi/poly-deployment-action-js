@@ -2,7 +2,7 @@ name: PolyAPI Deployment Action
 description: 'This GitHub Action automates the deployment process for all PolyAPI deployables in your application.'
 branding:
   icon: 'upload-cloud'
-  color: 'red'
+  color: 'blue'
 
 inputs:
   poly_api_key:
