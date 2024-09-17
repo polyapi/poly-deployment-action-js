@@ -4,7 +4,9 @@ This GitHub Action automates the deployment process for all PolyAPI deployables 
 
 PolyAPI accelerates development and simplifies the operation of integrations, orchestrations, and microservices with TypeScript, Python, Java, and C#, built on Kubernetes-native technology and cutting-edge AI.
 
-Learn more: https://polyapi.io/
+PolyAPI documentation: https://docs.polyapi.io/
+
+Learn more about Poly: https://polyapi.io/
 
 ## Usage
 
