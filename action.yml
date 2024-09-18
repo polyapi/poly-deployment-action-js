@@ -90,12 +90,10 @@ runs:
         POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
       run: |
         if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
-          OUTPUT=$(yarn poly sync)
+          yarn poly sync
         else
-          OUTPUT=$(npx poly sync)
+          npx poly sync
         fi
-        echo "$OUTPUT"
-        echo "sync_output=${OUTPUT}" >> "$GITHUB_OUTPUT"
 
     - name: Cache PolyAPI deployments
       uses: actions/cache@v4
@@ -112,8 +110,7 @@ runs:
         git config --global user.email 'poly-deployments@polyapi.io'
         git add .
         if ! git diff-index --quiet HEAD; then
-          COMMIT_MESSAGE="${{ steps.deploy.outputs.sync_output }}"
-          git commit -m "PolyAPI Deployment" -m "$COMMIT_MESSAGE"
+          git commit -m "PolyAPI Deployment"
         else
           echo "No changes to commit."
         fi
