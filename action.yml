@@ -4,21 +4,17 @@ branding:
   icon: 'upload-cloud'
   color: 'blue'
 
-inputs:
-  poly_api_key:
-    description: 'The API key for Poly. Will fallback to GitHub Secrets if not provided.'
-    required: false
-    default: ''
-  poly_api_base_url:
-    description: 'The base url for the deploy target poly instance. Will fallback to GitHub Secrets if not provided.'
-    required: false
-    default: ''
-
 on:
-  push:
-    branches:
-      - develop
-      - main
+  workflow_call:
+    inputs:
+      poly_api_key:
+        description: 'The API key for Poly. Will fallback to GitHub Secrets if not provided.'
+        required: false
+        default: ''
+      poly_api_base_url:
+        description: 'The base url for the deploy target poly instance. Will fallback to GitHub Secrets if not provided.'
+        required: false
+        default: ''
 
 jobs:
   deploy:
@@ -61,15 +57,15 @@ jobs:
           fi
 
       - name: Determine package manager
-        id: determine-package-manager
+        id: package-manager
         run: |
           if [ -f "yarn.lock" ]; then
-            echo "PACKAGE_MANAGER=yarn" >> $GITHUB_ENV
+            echo "package_manager=yarn" >> $GITHUB_ENV
           elif [ -f "package-lock.json" ]; then
-            echo "PACKAGE_MANAGER=npm" >> $GITHUB_ENV
+            echo "package_manager=npm" >> $GITHUB_ENV
           else
             echo "No package manager lock file found. Defaulting to using `npm` instead of `yarn`."
-            echo "PACKAGE_MANAGER=npm" >> $GITHUB_ENV
+            echo "package_manager=npm" >> $GITHUB_ENV
           
       - name: Restore cached dependencies
         uses: actions/cache@v3
@@ -78,21 +74,21 @@ jobs:
             node_modules
             ~/.npm # for npm
             ~/.cache/yarn # for yarn
-          key: ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-node_modules-
+            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-
 
       - name: Restore cached PolyAPI deployments
         uses: actions/cache@v3
         with:
           path: node_modules/.poly/
-          key: ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-poly-
+            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-
 
       - name: Install dependencies
         run: |
-          if [ "${{ env.PACKAGE_MANAGER }}" == "yarn" ]; then
+          if [ "${{ steps.package-manager.outputs.package_manager }}" == "yarn" ]; then
             yarn install
           else
             npm ci
@@ -109,21 +105,21 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          if [ "${{ env.PACKAGE_MANAGER }}" == "yarn" ]; then
+          if [ "${{ steps.package-manager.outputs.package_manager }}" == "yarn" ]; then
             OUTPUT=$(yarn poly sync)
           else
             OUTPUT=$(npm run poly sync)
           fi
           echo "$OUTPUT"
-          echo "::set-output name=sync_output::$OUTPUT"
+          echo "sync_output=$OUTPUT" >> "$GITHUB_OUTPUT"
 
       - name: Cache PolyAPI deployments
         uses: actions/cache@v3
         with:
           path: node_modules/.poly/
-          key: ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.PACKAGE_MANAGER }}-poly-
+            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-
 
       - name: Commit deployment receipts
         run: |
