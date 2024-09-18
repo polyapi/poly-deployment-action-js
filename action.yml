@@ -110,7 +110,7 @@ runs:
         git config --global user.email 'poly-deployments@polyapi.io'
         git add .
         if ! git diff-index --quiet HEAD; then
-          git commit -m "PolyAPI Deployment"
+          git commit -m "PolyAPI Deployment" --no-verify
         else
           echo "No changes to commit."
         fi

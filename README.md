@@ -38,7 +38,7 @@ To use this action in your workflow:
 
         steps:
           - name: Poly Deploy
-            uses: polyapi/poly-deployment-action-js@v0.2.10-alpha
+            uses: polyapi/poly-deployment-action-js@v0.2.11-alpha
             with:
               poly_api_key: ${{ secrets.POLY_API_KEY }}
               poly_api_base_url: ${{ secrets.POLY_API_BASE_URL }}
