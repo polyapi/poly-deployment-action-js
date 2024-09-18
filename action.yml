@@ -4,137 +4,137 @@ branding:
   icon: 'upload-cloud'
   color: 'blue'
 
-on:
-  workflow_call:
-    inputs:
-      poly_api_key:
-        description: 'The API key for Poly. Will fallback to GitHub Secrets if not provided.'
-        required: false
-        default: ''
-      poly_api_base_url:
-        description: 'The base url for the deploy target poly instance. Will fallback to GitHub Secrets if not provided.'
-        required: false
-        default: ''
+inputs:
+  poly_api_key:
+    description: 'The API key for Poly. Will fallback to GitHub Secrets if not provided.'
+    required: false
+    default: ''
+  poly_api_base_url:
+    description: 'The base url for the deploy target poly instance. Will fallback to GitHub Secrets if not provided.'
+    required: false
+    default: ''
 
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
-  cancel-in-progress: true
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Poly pre-check
+      shell: bash
+      run: |
+        if ! grep -q '"polyapi":' package.json; then
+          echo "Please install the PolyAPI client using your package manager."
+          exit 1
+        fi
 
-      - name: Poly pre-check
-        run: |
-          if ! grep -q '"polyapi":' package.json; then
-            echo "Please install the PolyAPI client using your package manager."
-            exit 1
-          fi
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - name: Set environment variables
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.poly_api_key }}" ]; then
+          echo "POLY_API_KEY=${{ inputs.poly_api_key }}" >> $GITHUB_ENV
+        elif [ "${{ github.ref_name }}" == "main" ]; then
+          echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_PROD }}" >> $GITHUB_ENV
+        else
+          echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_DEV }}" >> $GITHUB_ENV
+        fi
+        if [ -n "${{ inputs.poly_api_base_url }}" ]; then
+          echo "POLY_API_BASE_URL=${{ inputs.poly_api_base_url }}" >> $GITHUB_ENV
+        elif [ "${{ github.ref_name }}" == "main" ]; then
+          echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_PROD }}" >> $GITHUB_ENV
+        else
+          echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_DEV }}" >> $GITHUB_ENV
+        fi
 
-      - name: Set environment variables
-        run: |
-          if [ -n "${{ inputs.poly_api_key }}" ]; then
-            echo "POLY_API_KEY=${{ inputs.poly_api_key }}" >> $GITHUB_ENV
-          elif [ "${{ github.ref_name }}" == "main" ]; then
-            echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_PROD }}" >> $GITHUB_ENV
-          else
-            echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_DEV }}" >> $GITHUB_ENV
-          fi
-          if [ -n "${{ inputs.poly_api_base_url }}" ]; then
-            echo "POLY_API_BASE_URL=${{ inputs.poly_api_base_url }}" >> $GITHUB_ENV
-          elif [ "${{ github.ref_name }}" == "main" ]; then
-            echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_PROD }}" >> $GITHUB_ENV
-          else
-            echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_DEV }}" >> $GITHUB_ENV
-          fi
+    - name: Determine package manager
+      id: dpm
+      shell: bash
+      run: |
+        if [ -f "yarn.lock" ]; then
+          echo "package_manager=yarn" >> $GITHUB_ENV
+        elif [ -f "package-lock.json" ]; then
+          echo "package_manager=npm" >> $GITHUB_ENV
+        else
+          echo "No package manager lock file found. Defaulting to using `npm` instead of `yarn`."
+          echo "package_manager=npm" >> $GITHUB_ENV
 
-      - name: Determine package manager
-        id: dpm
-        run: |
-          if [ -f "yarn.lock" ]; then
-            echo "package_manager=yarn" >> $GITHUB_ENV
-          elif [ -f "package-lock.json" ]; then
-            echo "package_manager=npm" >> $GITHUB_ENV
-          else
-            echo "No package manager lock file found. Defaulting to using `npm` instead of `yarn`."
-            echo "package_manager=npm" >> $GITHUB_ENV
+    - name: Restore cached dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          ~/.npm # for npm
+          ~/.cache/yarn # for yarn
+        key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
+        restore-keys: |
+          "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-"
 
-      - name: Restore cached dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm # for npm
-            ~/.cache/yarn # for yarn
-          key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
-          restore-keys: |
-            "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-"
+    - name: Restore cached PolyAPI deployments
+      uses: actions/cache@v4
+      with:
+        path: node_modules/.poly/
+        key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
+        restore-keys: |
+          "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-"
 
-      - name: Restore cached PolyAPI deployments
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.poly/
-          key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
-          restore-keys: |
-            "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-"
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
+          yarn install
+        else
+          npm ci
+        fi
 
-      - name: Install dependencies
-        run: |
-          if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
-            yarn install
-          else
-            npm ci
-          fi
+    - name: Setup Poly
+      shell: bash
+      run: |
+        POLY_ENV_PATH="node_modules/.poly/config.env"
+        if [ ! -f "$POLY_ENV_PATH" ]; then
+          # We purposefully exclude the POLY_API_BASE_URL and POLY_API_KEY here to prevent them from leaking via github actions cache
+          printf "DISABLE_AI=true\nENVIRONMENT_SETUP_COMPLETE=true\n" > "$POLY_ENV_PATH"
+        fi
 
-      - name: Setup Poly
-        run: |
-          POLY_ENV_PATH="node_modules/.poly/config.env"
-          if [ ! -f "$POLY_ENV_PATH" ]; then
-            # We purposefully exclude the POLY_API_BASE_URL and POLY_API_KEY here to prevent them from leaking via github actions cache
-            printf "DISABLE_AI=true\nENVIRONMENT_SETUP_COMPLETE=true\n" > "$POLY_ENV_PATH"
-          fi
+    - name: Deploy
+      id: deploy
+      shell: bash
+      run: |
+        if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
+          OUTPUT=$(yarn poly sync)
+        else
+          OUTPUT=$(npm run poly sync)
+        fi
+        echo "$OUTPUT"
+        echo "sync_output=${OUTPUT}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy
-        id: deploy
-        run: |
-          if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
-            OUTPUT=$(yarn poly sync)
-          else
-            OUTPUT=$(npm run poly sync)
-          fi
-          echo "$OUTPUT"
-          echo "sync_output=${OUTPUT}" >> "$GITHUB_OUTPUT"
+    - name: Cache PolyAPI deployments
+      uses: actions/cache@v4
+      with:
+        path: node_modules/.poly/
+        key: ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-
 
-      - name: Cache PolyAPI deployments
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.poly/
-          key: ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-
+    - name: Commit deployment receipts
+      shell: bash
+      run: |
+        git config --global user.name 'PolyAPI Deployment Bot'
+        git config --global user.email 'poly-deployments@polyapi.io'
+        git add .
+        if ! git diff-index --quiet HEAD; then
+          COMMIT_MESSAGE="${{ steps.deploy.outputs.sync_output }}"
+          git commit -m "PolyAPI Deployment" -m "$COMMIT_MESSAGE"
+        else
+          echo "No changes to commit."
+        fi
 
-      - name: Commit deployment receipts
-        run: |
-          git config --global user.name 'PolyAPI Deployment Bot'
-          git config --global user.email 'poly-deployments@polyapi.io'
-          git add .
-          if ! git diff-index --quiet HEAD; then
-            COMMIT_MESSAGE="${{ steps.deploy.outputs.sync_output }}"
-            git commit -m "PolyAPI Deployment" -m "$COMMIT_MESSAGE"
-          else
-            echo "No changes to commit."
-          fi
-
-      - name: Push changes
-        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df  # v0.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
+    - name: Push changes
+      uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df  # v0.8.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref_name }}
