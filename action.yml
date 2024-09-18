@@ -75,6 +75,7 @@ runs:
     - name: Setup Poly
       shell: bash
       run: |
+        mkdir node_modules/.poly
         POLY_ENV_PATH="node_modules/.poly/config.env"
         if [ ! -f "$POLY_ENV_PATH" ]; then
           # We purposefully exclude the POLY_API_BASE_URL and POLY_API_KEY here to prevent them from leaking via github actions cache
