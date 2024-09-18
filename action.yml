@@ -89,7 +89,7 @@ runs:
         if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
           OUTPUT=$(yarn poly sync)
         else
-          OUTPUT=$(npm run poly sync)
+          OUTPUT=$(npx poly sync)
         fi
         echo "$OUTPUT"
         echo "sync_output=${OUTPUT}" >> "$GITHUB_OUTPUT"
