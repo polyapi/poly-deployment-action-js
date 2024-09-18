@@ -42,7 +42,7 @@ To use this action in your workflow:
 
         steps:
           - name: Poly Deploy
-            uses: polyapi/poly-deployment-action-js@v0.2.0-alpha
+            uses: polyapi/poly-deployment-action-js@v0.2.1-alpha
     ```
 
 ### Setting keys explicitly
@@ -52,7 +52,7 @@ If you wish to set the api key or deploy url explicitly rather than letting the 
 ```yaml
     steps:
       - name: Poly Deploy
-        uses: polyapi/poly-deployment-action-js@v0.2.0-alpha
+        uses: polyapi/poly-deployment-action-js@v0.2.1-alpha
         with:
           poly_api_key: ${{ secrets.CUSTOM_SECRET_KEY }}
           poly_api_base_url: https://my.poly.instance.com

@@ -16,13 +16,13 @@ on:
         required: false
         default: ''
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.ref }}
-      cancel-in-progress: true
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -43,14 +43,14 @@ jobs:
         run: |
           if [ -n "${{ inputs.poly_api_key }}" ]; then
             echo "POLY_API_KEY=${{ inputs.poly_api_key }}" >> $GITHUB_ENV
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          elif [ "${{ github.ref_name }}" == "main" ]; then
             echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_PROD }}" >> $GITHUB_ENV
           else
             echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_DEV }}" >> $GITHUB_ENV
           fi
           if [ -n "${{ inputs.poly_api_base_url }}" ]; then
             echo "POLY_API_BASE_URL=${{ inputs.poly_api_base_url }}" >> $GITHUB_ENV
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          elif [ "${{ github.ref_name }}" == "main" ]; then
             echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_PROD }}" >> $GITHUB_ENV
           else
             echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_DEV }}" >> $GITHUB_ENV
@@ -68,7 +68,7 @@ jobs:
             echo "package_manager=npm" >> $GITHUB_ENV
           
       - name: Restore cached dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             node_modules
@@ -79,7 +79,7 @@ jobs:
             ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-
 
       - name: Restore cached PolyAPI deployments
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules/.poly/
           key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
@@ -114,7 +114,7 @@ jobs:
           echo "sync_output=$OUTPUT" >> "$GITHUB_OUTPUT"
 
       - name: Cache PolyAPI deployments
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: node_modules/.poly/
           key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
@@ -135,4 +135,4 @@ jobs:
         uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: ${{ github.ref_name }}
