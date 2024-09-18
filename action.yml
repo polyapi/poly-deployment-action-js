@@ -17,7 +17,7 @@ on:
         default: ''
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -74,17 +74,17 @@ jobs:
             node_modules
             ~/.npm # for npm
             ~/.cache/yarn # for yarn
-          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
           restore-keys: |
-            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-
+            "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-"
 
       - name: Restore cached PolyAPI deployments
         uses: actions/cache@v4
         with:
           path: node_modules/.poly/
-          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
           restore-keys: |
-            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-
+            "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-"
 
       - name: Install dependencies
         run: |
