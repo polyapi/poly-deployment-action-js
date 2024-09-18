@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Poly pre-check
         run: |
@@ -35,9 +35,9 @@ jobs:
           fi
 
       - name: Setup Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
       - name: Set environment variables
         run: |
@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Determine package manager
-        id: package-manager
+        id: dpm
         run: |
           if [ -f "yarn.lock" ]; then
             echo "package_manager=yarn" >> $GITHUB_ENV
@@ -66,7 +66,7 @@ jobs:
           else
             echo "No package manager lock file found. Defaulting to using `npm` instead of `yarn`."
             echo "package_manager=npm" >> $GITHUB_ENV
-          
+
       - name: Restore cached dependencies
         uses: actions/cache@v4
         with:
@@ -74,21 +74,21 @@ jobs:
             node_modules
             ~/.npm # for npm
             ~/.cache/yarn # for yarn
-          key: "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
+          key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
           restore-keys: |
-            "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-node_modules-"
+            "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-node_modules-"
 
       - name: Restore cached PolyAPI deployments
         uses: actions/cache@v4
         with:
           path: node_modules/.poly/
-          key: "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
+          key: "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}"
           restore-keys: |
-            "${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-"
+            "${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-"
 
       - name: Install dependencies
         run: |
-          if [ "${{ steps.package-manager.outputs.package_manager }}" == "yarn" ]; then
+          if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
             yarn install
           else
             npm ci
@@ -105,21 +105,21 @@ jobs:
       - name: Deploy
         id: deploy
         run: |
-          if [ "${{ steps.package-manager.outputs.package_manager }}" == "yarn" ]; then
+          if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
             OUTPUT=$(yarn poly sync)
           else
             OUTPUT=$(npm run poly sync)
           fi
           echo "$OUTPUT"
-          echo "sync_output=$OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "sync_output=${OUTPUT}" >> "$GITHUB_OUTPUT"
 
       - name: Cache PolyAPI deployments
         uses: actions/cache@v4
         with:
           path: node_modules/.poly/
-          key: ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          key: ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ steps.package-manager.outputs.package_manager }}-poly-
+            ${{ runner.os }}-${{ steps.dpm.outputs.package_manager }}-poly-
 
       - name: Commit deployment receipts
         run: |
@@ -129,10 +129,12 @@ jobs:
           if ! git diff-index --quiet HEAD; then
             COMMIT_MESSAGE="${{ steps.deploy.outputs.sync_output }}"
             git commit -m "PolyAPI Deployment" -m "$COMMIT_MESSAGE"
+          else
+            echo "No changes to commit."
           fi
 
       - name: Push changes
-        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df # v0.8.0
+        uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df  # v0.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
