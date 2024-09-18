@@ -6,13 +6,11 @@ branding:
 
 inputs:
   poly_api_key:
-    description: 'The API key for Poly. Will fallback to GitHub Secrets if not provided.'
-    required: false
-    default: ''
+    description: 'The API key for Poly.'
+    required: true
   poly_api_base_url:
-    description: 'The base url for the deploy target poly instance. Will fallback to GitHub Secrets if not provided.'
-    required: false
-    default: ''
+    description: 'The base url for the deploy target poly instance.'
+    required: true
 
 runs:
   using: "composite"
@@ -32,24 +30,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: 20
-
-    - name: Set environment variables
-      shell: bash
-      run: |
-        if [ -n "${{ inputs.poly_api_key }}" ]; then
-          echo "POLY_API_KEY=${{ inputs.poly_api_key }}" >> $GITHUB_ENV
-        elif [ "${{ github.ref_name }}" == "main" ]; then
-          echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_PROD }}" >> $GITHUB_ENV
-        else
-          echo "POLY_API_KEY=${{ secrets.POLY_API_KEY_DEV }}" >> $GITHUB_ENV
-        fi
-        if [ -n "${{ inputs.poly_api_base_url }}" ]; then
-          echo "POLY_API_BASE_URL=${{ inputs.poly_api_base_url }}" >> $GITHUB_ENV
-        elif [ "${{ github.ref_name }}" == "main" ]; then
-          echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_PROD }}" >> $GITHUB_ENV
-        else
-          echo "POLY_API_BASE_URL=${{ secrets.POLY_API_BASE_URL_DEV }}" >> $GITHUB_ENV
-        fi
 
     - name: Determine package manager
       id: dpm
@@ -136,5 +116,5 @@ runs:
     - name: Push changes
       uses: ad-m/github-push-action@d91a481090679876dfc4178fef17f286781251df  # v0.8.0
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ github.token }}
         branch: ${{ github.ref_name }}
