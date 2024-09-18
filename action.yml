@@ -76,7 +76,7 @@ runs:
       shell: bash
       run: |
         mkdir node_modules/.poly
-        POLY_ENV_PATH="node_modules/.poly/config.env"
+        POLY_ENV_PATH="node_modules/.poly/.config.env"
         if [ ! -f "$POLY_ENV_PATH" ]; then
           # We purposefully exclude the POLY_API_BASE_URL and POLY_API_KEY here to prevent them from leaking via github actions cache
           printf "DISABLE_AI=true\nENVIRONMENT_SETUP_COMPLETE=true\n" > "$POLY_ENV_PATH"
@@ -85,6 +85,9 @@ runs:
     - name: Deploy
       id: deploy
       shell: bash
+      env:
+        POLY_API_KEY: ${{ inputs.poly_api_key }}
+        POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
       run: |
         if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
           OUTPUT=$(yarn poly sync)
