@@ -90,9 +90,9 @@ runs:
         POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
       run: |
         if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
-          yarn poly sync
+          yarn poly sync --custom-path=./node_modules/.poly/
         else
-          npx poly sync
+          npx poly sync --custom-path=./node_modules/.poly/
         fi
 
     - name: Cache PolyAPI deployments
