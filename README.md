@@ -1,4 +1,4 @@
-# <img src="https://polyapi.io/wp-content/uploads/2024/05/poly-block-logo-mark.png" height="24px"/> PolyAPI Deployment Action
+# <img src="https://polyapi.io/wp-content/uploads/2024/05/poly-block-logo-mark.png" height="24px"/> PolyAPI Deployment Action (Python)
 
 This GitHub Action automates the deployment process for all PolyAPI deployables in your application.
 
