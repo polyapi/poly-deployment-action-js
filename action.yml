@@ -15,6 +15,21 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Check inputs
+      shell: bash
+      env:
+        POLY_API_KEY: ${{ inputs.poly_api_key }}
+        POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
+      run: |
+        if [ -z "${POLY_API_KEY:-}" ]; then
+          echo "poly_api_key is not defined. Did you forget to set it up as a secret or forget to pass it in?"
+          exit 1
+        fi
+        if [ -z "${POLY_API_BASE_URL:-}" ]; then
+          echo "poly_api_base_url is not defined. Did you forget to set it up as a secret or forget to pass it in?"
+          exit 1
+        fi
+
     - name: Checkout code
       uses: actions/checkout@v4
 
