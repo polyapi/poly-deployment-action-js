@@ -89,6 +89,9 @@ runs:
 
     - name: Setup Poly
       shell: bash
+      env:
+        POLY_API_KEY: ${{ inputs.poly_api_key }}
+        POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
       run: |
         mkdir node_modules/.poly
         POLY_ENV_PATH="node_modules/.poly/.config.env"
@@ -96,6 +99,7 @@ runs:
           # We purposefully exclude the POLY_API_BASE_URL and POLY_API_KEY here to prevent them from leaking via github actions cache
           printf "DISABLE_AI=true\nENVIRONMENT_SETUP_COMPLETE=true\n" > "$POLY_ENV_PATH"
         fi
+        npx poly generate 
 
     - name: Deploy
       id: deploy
