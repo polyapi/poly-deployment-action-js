@@ -11,6 +11,9 @@ inputs:
   poly_api_base_url:
     description: 'The base url for the deploy target poly instance.'
     required: true
+  poly_execution_api_key:
+    description: 'The execution API Key for functions.'
+    required: false
 
 runs:
   using: composite
