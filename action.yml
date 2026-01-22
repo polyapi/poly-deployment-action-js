@@ -11,6 +11,9 @@ inputs:
   poly_api_base_url:
     description: 'The base url for the deploy target poly instance.'
     required: true
+  poly_execution_api_key:
+    description: 'The execution API Key for functions.'
+    required: false
 
 runs:
   using: composite
@@ -107,11 +110,16 @@ runs:
       env:
         POLY_API_KEY: ${{ inputs.poly_api_key }}
         POLY_API_BASE_URL: ${{ inputs.poly_api_base_url }}
+        POLY_EXECUTION_API_KEY: ${{ inputs.poly_execution_api_key}}
       run: |
+        SFX_KEY_ARG=""
+        if [ -n "${{inputs.poly_execution_api_key}}" ]; then
+          SFX_KEY_ARG="--execution-api-key=${{inputs.poly_execution_api_key}}"
+        fi
         if [ "${{ steps.dpm.outputs.package_manager }}" == "yarn" ]; then
           yarn poly sync --custom-path=./node_modules/.poly/
         else
-          npx poly sync --custom-path=./node_modules/.poly/
+          npx poly sync --custom-path=./node_modules/.poly/ $SFX_KEY_ARG
         fi
 
     - name: Cache PolyAPI deployments
